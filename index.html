@@ -141,6 +141,16 @@
             object-fit: cover;
         }
 
+        #wallpaper-demo {
+            position: relative;
+            display: block;
+            width: 100%;
+            height: 160px;
+            border-radius: 3px;
+            object-fit: cover;
+            margin: 1rem auto;
+        }
+
         #search-bar {
             border-radius: 28px;
         }
@@ -198,7 +208,7 @@
 <body class="mdui-theme-layout-auto mdui-theme-primary-blue mdui-theme-accent-blue">
 <!-- 主页布局（非搜索框） -->
 <div id="favorites" class="page">
-    <img src="" id="wallpaper" class="wallpaper" style="display: none;">
+    <img src="" id="wallpaper" style="display: none;">
     <div class="mdui-appbar mdui-appbar-fixed mdui-shadow-0">
         <div class="mdui-toolbar mdui-color-transparent mdui-text-color-white text-shadow">
             <div class="mdui-toolbar-spacer"></div>
@@ -207,7 +217,7 @@
                 <i class="mdui-icon material-icons">&#xe5c3;</i>
             </a>
             <a class="mdui-btn mdui-btn-icon" onclick="if(themePanel != null) themePanel.open();"
-               mdui-tooltip="{content: '主题与背景'}">
+               mdui-tooltip="{content: '主题与壁纸'}">
                 <i class="mdui-icon material-icons">&#xe3b7;</i>
             </a>
             <a class="mdui-btn mdui-btn-icon" onclick="if(settingsPanel != null) settingsPanel.open();"
@@ -325,9 +335,9 @@
         </li>
     </template>
 </div>
-<!-- 主题与背景设置 -->
+<!-- 主题与壁纸设置 -->
 <div id="theme-settings" class="mdui-dialog">
-    <div class="mdui-dialog-title">主题与背景设置</div>
+    <div class="mdui-dialog-title">主题与壁纸设置</div>
     <div class="mdui-dialog-content">
         <ul class="mdui-list">
             <li class="mdui-subheader">主题</li>
@@ -363,18 +373,17 @@
                     <i class="mdui-checkbox-icon"></i>
                 </div>
             </label>
-            <li class="mdui-subheader">背景</li>
+            <li class="mdui-subheader">壁纸</li>
             <li class="mdui-list-item">
-                <div class="mdui-row" style="width: 100%;">
+                <div class="mdui-row" style="width: 100%; margin: 0;">
                     <div class="mdui-col-xs-12">
-                        <img class="wallpaper"
-                             style="position: relative; display: block; width: 100%; height: 160px; border-radius: 3px; object-fit: cover; margin: 1rem 0;">
+                        <img id="wallpaper-demo">
                     </div>
                     <div class="mdui-col-xs-6 mdui-text-center" style="margin: 1rem 0;">
                         <button class="mdui-btn mdui-ripple" onclick="setWallpaper();">上传</button>
                     </div>
                     <div class="mdui-col-xs-6 mdui-text-center" style="margin: 1rem 0;">
-                        <button class="mdui-btn mdui-ripple">清除</button>
+                        <button class="mdui-btn mdui-ripple" onclick="clearWallpaper();">清除</button>
                     </div>
                 </div>
             </li>
@@ -635,7 +644,6 @@
         if (settingsPanel != null && settingsPanel.getState() == 'opened') settingsPanel.close();
         var replace = false, _uploadStart = function () {
             uploadTextFile(function (res) {
-                console.log(res);
                 var newFavorites = JSON.parse(res), curFavorites = [], res = [];
                 if (!Array.isArray(newFavorites)) {
                     mdui.alert('该文件不符合规范。');
@@ -839,12 +847,13 @@
 
     //根据源内容显示壁纸
     function showWallpaper(src) {
-        var container = $('.wallpaper');
+        var container = $('#wallpaper'), settingsContainer = $('#wallpaper-demo');
         if (typeof src == 'string' && src.length > 0) {
-            container.attr('src', src);
-            container.show();
+            container.attr('src', src).show();
+            settingsContainer.attr('src', src);
         } else {
-            container.hide();
+            container.attr('src', '').hide();
+            settingsContainer.attr('src', '');
         }
     }
 
@@ -864,7 +873,18 @@
                             canvas.width = image.width;
                             canvas.height = image.height;
                             ctx.drawImage(image, 0, 0, image.width, image.height);
-                            cropper = new Cropper(canvas, {viewMode: 2});
+                            cropper = new Cropper(canvas, {
+                                viewMode: 2,
+                                ready: function () {
+                                    var cropper = this.cropper, containerData = cropper.getImageData();
+                                    cropper.setCropBoxData({
+                                        left: 0,
+                                        top: 0,
+                                        width: containerData.width,
+                                        height: containerData.height
+                                    });
+                                }
+                            });
                         },
                         buttons: [{
                             text: '取消',
@@ -874,10 +894,20 @@
                         }, {
                             text: '确认',
                             onClick: function (inst) {
-                                var cropped = cropper.getCroppedCanvas({maxWidth: 1920, maxHeight: 1080});
+                                var boxData = cropper.getCropBoxData(), resolution = 1.5,
+                                    aspectRatio = Math.max(boxData.width, 1) / Math.max(boxData.height, 1),
+                                    maxWidth = Math.floor(Math.max($(window).width(), $(window).height() * aspectRatio) * resolution),
+                                    maxHeight = Math.floor(Math.max($(window).height(), $(window).width() / aspectRatio) * resolution),
+                                    threshold = 2073600, sizeRatio = maxWidth * maxHeight / threshold; //1920*1080
+                                if (sizeRatio > 1) {
+                                    maxWidth = Math.floor(maxWidth / sizeRatio);
+                                    maxHeight = Math.floor(maxHeight / sizeRatio);
+                                }
+                                var cropped = cropper.getCroppedCanvas({maxWidth: maxWidth, maxHeight: maxHeight});
                                 var imageBase64 = cropped.toDataURL('image/jpeg');
                                 config['wallpaper'] = imageBase64;
                                 setJson('config', config);
+                                mdui.snackbar('壁纸设置成功。');
                                 showWallpaper(imageBase64);
                             }
                         }]
@@ -893,6 +923,7 @@
     function clearWallpaper() {
         delete config['wallpaper'];
         setJson('config', config);
+        mdui.snackbar('壁纸清空成功。');
         showWallpaper('');
     }
 
