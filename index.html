@@ -153,7 +153,7 @@
             position: relative;
             margin: 0 auto;
             padding: .5rem 0;
-            cursor: pointer;
+            text-decoration: none;
         }
 
         .favorite-item-icon {
@@ -224,7 +224,7 @@
         </div>
         <template id="favorite-item-template">
             <div class="mdui-col">
-                <div class="favorite-item" onclick="openFavoriteItem({{index}});">
+                <a class="favorite-item" href="{{href}}">
                     <div class="favorite-item-icon mdui-card">
                         <div class="mdui-card-content">
                             {{{icon}}}
@@ -233,7 +233,7 @@
                     <p class="mdui-text-color-white mdui-text-center text-shadow">
                         {{title}}
                     </p>
-                </div>
+                </a>
             </div>
         </template>
     </div>
@@ -271,7 +271,8 @@
     </div>
     <!-- 搜索建议单个元素模板，用于渲染数据得到页面 -->
     <template id="search-suggestion-template">
-        <li class="search-suggestion-item mdui-list-item mdui-ripple" onclick="searchStart({{index}});">
+        <li class="search-suggestion-item mdui-list-item mdui-ripple" data-id="{{index}}"
+            onclick="searchStart(parseInt($(this).attr('data-id')));">
             <div class="mdui-list-item-content mdui-list-item-one-line">
                 {{title}}
             </div>
@@ -303,8 +304,7 @@
     <!-- 收藏夹编辑栏单个元素模板，用于渲染数据得到页面 -->
     <template id="editing-favorite-item-template">
         <li data-id="{{index}}" class="editing-favorite-item mdui-list-item mdui-ripple">
-            <i class="mdui-list-item-icon mdui-icon material-icons handle"
-               mdui-tooltip="{content: '拖动排序'}">&#xe25d;</i>
+            <i class="mdui-list-item-icon mdui-icon material-icons handle" title="拖动排序">&#xe25d;</i>
             <div class="mdui-list-item-content">
                 <div class="mdui-list-item-title mdui-list-item-one-line">
                     {{{icon}}}
@@ -314,9 +314,9 @@
                     {{link}}
                 </div>
             </div>
-            <button class="mdui-list-item-icon mdui-btn mdui-btn-icon" onclick="removeFavoriteItem({{index}});"
-                    mdui-tooltip="{content: '点击删除'}">
-                <i class="mdui-icon material-icons">&#xe872;</i>
+            <button class="mdui-btn mdui-btn-icon"
+                    onclick="removeFavoriteItem(parseInt($(this).parent().attr('data-id')));" title="点击删除">
+                <i class="mdui-list-item-icon mdui-icon material-icons">&#xe872;</i>
             </button>
         </li>
     </template>
@@ -386,16 +386,28 @@
     <div class="mdui-dialog-content">
         <ul class="mdui-list">
             <li class="mdui-subheader">设置</li>
-            <li class="mdui-list-item mdui-ripple mdui-text-color-grey mdui-list-item-one-line">（暂无设置项）</li>
+            <li class="mdui-list-item mdui-ripple" onclick="downloadFavorites();">
+                <div class="mdui-list-item-content">
+                    <div class="mdui-list-item-title mdui-list-item-one-line">导出收藏夹</div>
+                    <div class="mdui-list-item-text mdui-list-item-one-line">将收藏夹中的链接和标题以JSON格式下载到本地作为备份</div>
+                </div>
+            </li>
+            <li class="mdui-list-item mdui-ripple" onclick="uploadFavorites();">
+                <div class="mdui-list-item-content">
+                    <div class="mdui-list-item-title mdui-list-item-one-line">导入收藏夹</div>
+                    <div class="mdui-list-item-text mdui-list-item-one-line">将本地备份的收藏夹（JSON格式文件）导入该页面中</div>
+                </div>
+            </li>
             <li class="mdui-subheader">关于</li>
-            <li class="mdui-list-item mdui-ripple">
+            <li class="mdui-list-item">
                 <div class="mdui-list-item-content">
                     <div class="mdui-list-item-title mdui-list-item-one-line">主页</div>
-                    <div class="mdui-list-item-text">因为自己手机的浏览器主页太不实用了（收藏夹栏就那么一小条，而且下面还全是新闻），所以试着写了这个。喜欢的话就拿去用吧。
+                    <div class="mdui-list-item-text">
+                        因为自己手机的浏览器主页太不实用了（收藏夹栏就那么一小条，而且下面还全是新闻），所以试着写了这个。喜欢的话就拿去用吧。本浏览器主页所有的内容均仅存储在用户本地的浏览器中，无任何需要上传至服务器的内容，请放心使用。
                     </div>
                 </div>
             </li>
-            <li class="mdui-list-item mdui-ripple">
+            <li class="mdui-list-item">
                 <div class="mdui-list-item-content">
                     <div class="mdui-list-item-title mdui-list-item-one-line">作者：北冥有鱼</div>
                     <div class="mdui-list-item-text">项目部署在gitee上面（<a
@@ -403,17 +415,18 @@
                     </div>
                 </div>
             </li>
-            <li class="mdui-list-item mdui-ripple">
+            <li class="mdui-list-item">
                 <div class="mdui-list-item-content">
                     <div class="mdui-list-item-title mdui-list-item-one-line">协议：MIT License</div>
-                    <div class="mdui-list-item-text">看不爽的话也可以随便改。这个主页还是有点简陋，我知道满足不了所有人的需求，但是如果你想拿我的代码去用得话，遵循开源协议就行。
+                    <div class="mdui-list-item-text">这个主页还是有点简陋，我知道满足不了所有人的需求，但是如果你想拿我的代码去用的话，遵循开源协议即可。看不爽的话也可以随便改。
                     </div>
                 </div>
             </li>
-            <li class="mdui-list-item mdui-ripple">
+            <li class="mdui-list-item">
                 <div class="mdui-list-item-content">
                     <div class="mdui-list-item-title mdui-list-item-one-line">所使用的Javascript库</div>
-                    <div class="mdui-list-item-text">jQuery, mdui, mustache, Sortable, cropper</div>
+                    <div class="mdui-list-item-text">jQuery, mdui, mustache, Sortable, cropper, FileSaver；感谢它们及它们的作者。
+                    </div>
                 </div>
             </li>
         </ul>
@@ -428,6 +441,7 @@
 <script src="https://cdn.bootcdn.net/ajax/libs/mustache.js/4.1.0/mustache.min.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/Sortable/1.13.0/Sortable.min.js"></script>
 <script src="https://cdn.bootcdn.net/ajax/libs/cropperjs/1.5.9/cropper.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <script>
     //定义全局变量
     var urlReg = /^(https?:\/\/)([0-9a-z.]+)(:[0-9]+)?([/0-9a-z.]+)?(\?[0-9a-z&=]+)?(#[0-9-a-z]+)?/ig,
@@ -461,6 +475,23 @@
             localStorage.removeItem(key);
         else
             localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    //上传文本文件，读取其中的字符串并且对读取的字符串进行操作（传入的参数为回调函数）
+    function uploadTextFile(callback) {
+        $('<input type="file">').change(function () {
+            var f = this.files[0], reader = new FileReader();
+            reader.onload = function () {
+                callback(this.result);
+            };
+            reader.readAsText(f);
+        }).click();
+    }
+
+    //传入标题和字符串内容，下载文本文件
+    function downloadTextFile(title, content) {
+        var blob = new Blob([content], {type: "text/plain;charset=utf-8"});
+        saveAs(blob, title);
     }
 
     //判断一个页面是否开启
@@ -534,14 +565,16 @@
         container.html('');
         if (!isEditingPageOpening) editingContainer.html('');
         for (var i = 0; i < favorites.length; i++) {
-            var data = favorites[i] || {};
+            var data = $.extend(true, {}, favorites[i] || {});
             data['index'] = i;
             data['icon'] = getFavIcon(data['link']);
+            data['href'] = data['link'];
             container.append(Mustache.render(template, data));
             if (!isEditingPageOpening) editingContainer.append(Mustache.render(editingTemplate, data));
         }
         container.append(Mustache.render(template, {
             'index': -1,
+            'href': 'javascript:addFavoriteItem();',
             'icon': '<i class="mdui-icon material-icons">&#xe145;</i>',
             'title': '添加'
         }));
@@ -567,15 +600,6 @@
         }
     }
 
-    //根据索引打开收藏夹标签（如果索引不存在则打开新建标签）
-    function openFavoriteItem(index) {
-        if (index >= 0 && index < favorites.length) {
-            window.location.href = favorites[index]['link'];
-        } else {
-            addFavoriteItem();
-        }
-    }
-
     //向收藏夹中添加内容
     function addFavoriteItem() {
         newLinkTitlePair(function (link, title) {
@@ -597,12 +621,82 @@
         showFavorites();
     }
 
+    //保存收藏夹
+    function downloadFavorites() {
+        downloadTextFile('favorites_' + (new Date()).valueOf() + '.json', JSON.stringify(favorites));
+    }
+
+    //上传收藏夹（可以选择是否覆盖，如果不覆盖则为追加）
+    function uploadFavorites() {
+        if (settingsPanel != null && settingsPanel.getState() == 'opened') settingsPanel.close();
+        var replace = false, _uploadStart = function () {
+            uploadTextFile(function (res) {
+                console.log(res);
+                var newFavorites = JSON.parse(res), curFavorites = [], res = [];
+                if (!Array.isArray(newFavorites)) {
+                    mdui.alert('该文件不符合规范。');
+                    return;
+                }
+                if (replace) {
+                    for (var i = 0; i < newFavorites.length; i++) {
+                        var data = $.extend(true, {}, newFavorites[i]);
+                        if (typeof data == 'object' && 'link' in data && 'title' in data) res.push({
+                            'link': data['link'],
+                            'title': data['title']
+                        });
+                    }
+                } else {
+                    for (var i = 0; i < favorites.length; i++) {
+                        var data = $.extend(true, {}, favorites[i]);
+                        if (typeof data == 'object' && 'link' in data && 'title' in data) {
+                            res.push({'link': data['link'], 'title': data['title']});
+                            curFavorites.push(data['link']);
+                        }
+                    }
+                    for (var i = 0; i < newFavorites.length; i++) {
+                        var data = $.extend(true, {}, newFavorites[i]);
+                        if (typeof data == 'object' && 'link' in data && 'title' in data && curFavorites.indexOf(data['link']) < 0) res.push({
+                            'link': data['link'],
+                            'title': data['title']
+                        });
+                    }
+                }
+                favorites = res;
+                setJson('favorites', favorites);
+                showFavorites();
+                if (settingsPanel != null) settingsPanel.open();
+            });
+        };
+        mdui.dialog({
+            title: '选择导入方式',
+            content: '是要将导入的收藏夹覆盖原收藏夹，还是追加在原收藏夹后方（不导入已有的网址）？',
+            buttons: [{
+                text: '覆盖',
+                onClick: function (inst) {
+                    replace = true;
+                    _uploadStart();
+                }
+            }, {
+                text: '追加',
+                onClick: function (inst) {
+                    replace = false;
+                    _uploadStart();
+                }
+            }, {
+                text: '取消',
+                onClick: function (inst) {
+                    if (settingsPanel != null) settingsPanel.open();
+                }
+            }]
+        });
+    }
+
     //显示获取到的搜索建议
     function showSuggestions() {
         var container = $('#search-suggestion-list'), template = $('#search-suggestion-template').html();
         container.html('');
         for (var i = 0; i < searchSuggestions.length; i++) {
-            var data = searchSuggestions[i] || {};
+            var data = $.extend(true, {}, searchSuggestions[i] || {});
             data['index'] = i;
             container.append(Mustache.render(template, data));
         }
