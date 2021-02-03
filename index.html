@@ -329,6 +329,10 @@
                 </div>
             </div>
             <button class="mdui-btn mdui-btn-icon"
+                    onclick="editFavoriteItem(parseInt($(this).parent().attr('data-id')));" title="点击编辑">
+                <i class="mdui-list-item-icon mdui-icon material-icons">&#xe3c9;</i>
+            </button>
+            <button class="mdui-btn mdui-btn-icon"
                     onclick="removeFavoriteItem(parseInt($(this).parent().attr('data-id')));" title="点击删除">
                 <i class="mdui-list-item-icon mdui-icon material-icons">&#xe872;</i>
             </button>
@@ -532,30 +536,43 @@
     }
 
     //当需要输入一个新的链接-标题对时（可能是收藏夹，也可能是搜索引擎），弹出这个窗口。参数callback为回调函数，第一个参数是链接，第二个参数是标题
-    function newLinkTitlePair(callback) {
-        mdui.dialog({
-            title: '添加新的网页',
-            content: '<div style="position:relative;height:160px;"><div class="mdui-textfield mdui-textfield-floating-label"><label class="mdui-textfield-label">链接</label><input id="new-favorite-link" class="mdui-textfield-input" type="text" pattern="' + urlReg.source + '" required/><div class="mdui-textfield-error">请输入正确的URL</div></div><div class="mdui-textfield mdui-textfield-floating-label"><label class="mdui-textfield-label">标题</label><input id="new-favorite-title" class="mdui-textfield-input" type="text" required/><div class="mdui-textfield-error">标题不能为空</div></div></div>',
+    function formDialog(config) {
+        config = config || {};
+        var _config = {
+            inputs: [{
+                id: 'form-prompt-text',
+                type: 'text',
+                title: '请输入文本'
+            }],
+            callback: function (res) {
+                console.log(res);
+            }
+        };
+        $.extend(_config, config);
+        var dialogContent = '<div>';
+        _config['inputs'].forEach(function (v, k) {
+            switch (v['type']) {
+                case 'text':
+                    dialogContent += '<div class="mdui-textfield mdui-textfield-floating-label"><label class="mdui-textfield-label">' + v['title'] + '</label><input id="' + v['id'] + '" class="mdui-textfield-input" type="text"' + (v['pattern'] != null ? ' pattern="' + v['pattern'] + '"' : '') + (v['required'] ? ' required' : '') + '/>' + (v['errorNotice'] != null ? '<div class="mdui-textfield-error">' + v['errorNotice'] + '</div>' : '') + '</div>';
+                    break;
+            }
+        });
+        dialogContent += '</div>';
+        mdui.dialog($.extend({
+            content: dialogContent,
             buttons: [{
                 text: '取消'
             }, {
                 text: '确认',
                 onClick: function (inst) {
-                    var link = $('#new-favorite-link').val(), title = $('#new-favorite-title').val();
-                    if (link.length <= 0 || link.match(urlReg) == null) {
-                        mdui.snackbar({
-                            message: '请输入正确的URL。'
-                        });
-                    } else if (title.length <= 0) {
-                        mdui.snackbar({
-                            message: '标题不能为空。'
-                        });
-                    } else {
-                        callback(link, title);
+                    var argArr = [];
+                    for (var i = 0; i < _config.inputs.length; i++) {
+                        argArr.push($('#' + _config.inputs[i]['id']).val());
                     }
+                    _config.callback.apply(this, argArr);
                 }
             }]
-        });
+        }, _config));
     }
 
     //根据收藏夹的链接获取收藏夹内容的favicon，用于显示
@@ -615,14 +632,98 @@
 
     //向收藏夹中添加内容
     function addFavoriteItem() {
-        newLinkTitlePair(function (link, title) {
-            var data = {'link': link, 'title': title};
-            favorites.push(data);
-            data['index'] = favorites.length - 1;
-            data['icon'] = getFavIcon(data['link']);
-            $('#editing-favorite-list').append(Mustache.render($('#editing-favorite-item-template').html(), data));
-            setJson('favorites', favorites);
-            showFavorites();
+        formDialog({
+            title: '添加新的网页',
+            inputs: [{
+                id: 'new-favorite-link',
+                type: 'text',
+                title: '链接',
+                pattern: urlReg.source,
+                required: true,
+                errorNotice: '请输入正确的URL'
+            }, {
+                id: 'new-favorite-title',
+                type: 'text',
+                title: '标题',
+                required: true,
+                errorNotice: '标题不能为空'
+            }],
+            onOpened: function (inst) {
+
+            },
+            callback: function (link, title) {
+                if (link.length <= 0 || link.match(urlReg) == null) {
+                    mdui.snackbar({
+                        message: '请输入正确的URL。'
+                    });
+                } else if (title.length <= 0) {
+                    mdui.snackbar({
+                        message: '标题不能为空。'
+                    });
+                } else {
+                    var data = {'link': link, 'title': title};
+                    favorites.push($.extend(true, {}, data));
+                    data['index'] = favorites.length - 1;
+                    data['icon'] = getFavIcon(data['link']);
+                    $('#editing-favorite-list').append(Mustache.render($('#editing-favorite-item-template').html(), data));
+                    setJson('favorites', favorites);
+                    mdui.snackbar({
+                        message: '添加成功。'
+                    });
+                    showFavorites();
+                }
+            }
+        });
+    }
+
+    //更改收藏夹中的某个内容
+    function editFavoriteItem(index) {
+        if (index < 0 || index >= favorites.length) return;
+        formDialog({
+            title: '编辑',
+            inputs: [{
+                id: 'edit-favorite-link',
+                type: 'text',
+                title: '链接',
+                pattern: urlReg.source,
+                required: true,
+                errorNotice: '请输入正确的URL'
+            }, {
+                id: 'edit-favorite-title',
+                type: 'text',
+                title: '标题',
+                required: true,
+                errorNotice: '标题不能为空'
+            }],
+            onOpened: function (inst) {
+                $('#edit-favorite-link').val(favorites[index]['link']);
+                $('#edit-favorite-title').val(favorites[index]['title']);
+                mdui.updateTextFields();
+            },
+            callback: function (link, title) {
+                if (link.length <= 0 || link.match(urlReg) == null) {
+                    mdui.snackbar({
+                        message: '请输入正确的URL。'
+                    });
+                } else if (title.length <= 0) {
+                    mdui.snackbar({
+                        message: '标题不能为空。'
+                    });
+                } else {
+                    favorites[index] = {'link': link, 'title': title};
+                    var data = $.extend(true, {}, favorites[index]),
+                        editingContainer = $('.editing-favorite-item[data-id="' + index + '"]');
+                    data['index'] = index;
+                    data['icon'] = getFavIcon(data['link']);
+                    editingContainer.after(Mustache.render($('#editing-favorite-item-template').html(), data));
+                    editingContainer.remove();
+                    setJson('favorites', favorites);
+                    mdui.snackbar({
+                        message: '修改成功。'
+                    });
+                    showFavorites();
+                }
+            }
         });
     }
 
@@ -631,6 +732,9 @@
         $('.editing-favorite-item[data-id="' + index + '"]').remove();
         favorites.splice(index, 1);
         setJson('favorites', favorites);
+        mdui.snackbar({
+            message: '删除成功。'
+        });
         showFavorites();
     }
 
